@@ -17,9 +17,9 @@ sentry_sdk.init(
     "http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11",
     traces_sample_rate=1.0 # TODO - Set this to 0.0 before release
 )
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARN)
 LOG = logging.getLogger("tilt")
-LOG.setLevel(logging.INFO)
+LOG.setLevel(logging.WARN)
 
 
 # Create a list of TiltHydrometer objects for us to use
@@ -27,22 +27,23 @@ tilts = {x: TiltHydrometer(x) for x in TiltHydrometer.tilt_colors}  # type: Dict
 
 
 # Configuration variables
-verbose = False
 bluetooth_device = 0
 
 def load_config_file():
     """This function loads a config file using environment variables. The config file
     contains script level settings (such as verbose, and bluetooth_device) as well as configuration information for data
     targets such as Fermentrack"""
-    global verbose
     global bluetooth_device
 
     # Read the verbose setting from the environment variable
     verbose_env = os.environ.get("TILTBRIDGE_JR_VERBOSE")
     verbose = verbose_env.lower() == 'true' if verbose_env else False
 
+    if verbose:
+        LOG.setLevel(logging.INFO)
+
     # Read the bluetooth_device setting from the environment variable
-    bluetooth_device_env = os.environ.get("TILTBRIDGE_BLUETOOTH_DEVICE")
+    bluetooth_device_env = os.environ.get("TILTBRIDGE_JR_BLUETOOTH_DEVICE")
     bluetooth_device = int(bluetooth_device_env) if bluetooth_device_env else 0
 
     # TODO - Call configuration for data targets here
@@ -50,7 +51,6 @@ def load_config_file():
 
 def process_ble_beacon(data):
     # While I'm not a fan of globals, not sure how else we can store state here easily
-    global verbose
     global tilts
 
     ev = aiobs.HCI_Event()
@@ -58,19 +58,16 @@ def process_ble_beacon(data):
 
     # To make things easier, let's convert the byte string to a hex string first
     if ev.raw_data is None:
-        if verbose:
-            LOG.error("Event has no raw data")
+        LOG.debug("Event has no raw data")
         return False
 
     raw_data_hex = ev.raw_data.hex()
 
     if len(raw_data_hex) < 80:  # Very quick filter to determine if this is potentially a valid Tilt device
-        if verbose:
-            LOG.debug("Small raw_data_hex: {}".format(raw_data_hex))
+        LOG.debug("Small raw_data_hex: {}".format(raw_data_hex))
         return False
     if "1370f02d74de" not in raw_data_hex:  # Another very quick filter (honestly, might not be faster than just looking at uuid below)
-        if verbose:
-            LOG.debug("Missing key in raw_data_hex: {}".format(raw_data_hex))
+        LOG.debug("Missing key in raw_data_hex: {}".format(raw_data_hex))
         return False
 
     # For testing/viewing raw announcements, uncomment the following
@@ -93,8 +90,7 @@ def process_ble_beacon(data):
         uuid = payload[4:36]
         color = TiltHydrometer.color_lookup(uuid)  # Map the uuid back to our TiltHydrometer object
         if color is None:
-            if verbose:
-                LOG.error(f"Unable to find a TiltHydrometer color for UUID {uuid}")
+            LOG.error(f"Unable to find a TiltHydrometer color for UUID {uuid}")
             return False
 
         temp = int.from_bytes(bytes.fromhex(payload[36:40]), byteorder='big')
@@ -108,23 +104,17 @@ def process_ble_beacon(data):
         sentry_sdk.capture_exception(e)
         exit(1)
 
-    if verbose:
-        LOG.info("Tilt Payload (hex): {}".format(raw_data_hex))
+    # LOG.info("Tilt Payload (hex): {}".format(raw_data_hex))
 
     tilts[color].process_decoded_values(gravity, temp, rssi, tx_pwr)  # Process the data sent from the Tilt
 
-    if verbose:
-        # LOG.info("Color {} - MAC {}".format(color, mac_addr))
-        LOG.info("Raw Data: `{}`".format(raw_data_hex))
-        LOG.info(f"{color} - Temp: {temp}, Gravity: {gravity}, RSSI: {rssi}, TX Pwr: {tx_pwr}")
-
-    # TODO - Process sending the data here
+    # LOG.info("Color {} - MAC {}".format(color, mac_addr))
+    # LOG.info("Raw Data: `{}`".format(raw_data_hex))
+    LOG.info(f"Found Tilt: {color} - Temp: {temp}, Gravity: {gravity}, RSSI: {rssi}, TX Pwr: {tx_pwr}")
 
 
 
-
-async def amain(args=None):
-    global verbose
+async def async_main(args=None):
     global bluetooth_device
 
     event_loop = asyncio.get_running_loop()
@@ -150,11 +140,9 @@ async def amain(args=None):
             await asyncio.sleep(3600)
             # TODO - Potentially check if we haven't detected anything here and restart the loop
     except KeyboardInterrupt:
-        if verbose:
-                LOG.info('Keyboard interrupt')
+            LOG.info('Keyboard interrupt')
     finally:
-        if verbose:
-            LOG.info('Closing event loop')
+        LOG.debug('Closing event loop')
         # event_loop.run_until_complete(btctrl.stop_scan_request())
         await btctrl.stop_scan_request()
         command = aiobs.HCI_Cmd_LE_Advertise(enable=False)
@@ -163,4 +151,4 @@ async def amain(args=None):
 
 if __name__ == '__main__':
     load_config_file()
-    asyncio.run(amain())
+    asyncio.run(async_main())
