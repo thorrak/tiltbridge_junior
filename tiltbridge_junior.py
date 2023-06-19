@@ -30,7 +30,7 @@ bluetooth_device = 0  # Default to /dev/hci0
 tilts = {x: TiltHydrometer(x) for x in TiltHydrometer.tilt_colors}  # type: Dict[str, TiltHydrometer]
 
 
-def processBLEBeacon(data):
+def process_ble_beacon(data):
     # While I'm not a fan of globals, not sure how else we can store state here easily
     global verbose
     global tilts
@@ -46,7 +46,7 @@ def processBLEBeacon(data):
 
     raw_data_hex = ev.raw_data.hex()
 
-    if len(raw_data_hex) < 80:  # Very quick filter to determine if this is a valid Tilt device
+    if len(raw_data_hex) < 80:  # Very quick filter to determine if this is potentially a valid Tilt device
         if verbose:
             LOG.debug("Small raw_data_hex: {}".format(raw_data_hex))
         return False
@@ -73,6 +73,12 @@ def processBLEBeacon(data):
 
         # ...and then dissect said payload into a UUID, temp, and gravity
         uuid = payload[4:36]
+        color = TiltHydrometer.color_lookup(uuid)  # Map the uuid back to our TiltHydrometer object
+        if color is None:
+            if verbose:
+                LOG.error(f"Unable to find a TiltHydrometer color for UUID {uuid}")
+            return False
+
         temp = int.from_bytes(bytes.fromhex(payload[36:40]), byteorder='big')
         gravity = int.from_bytes(bytes.fromhex(payload[40:44]), byteorder='big')
         # On the latest tilts, TX power is used for battery age in weeks
@@ -87,7 +93,6 @@ def processBLEBeacon(data):
     if verbose:
         LOG.info("Tilt Payload (hex): {}".format(raw_data_hex))
 
-    color = TiltHydrometer.color_lookup(uuid)  # Map the uuid back to our TiltHydrometer object
     tilts[color].process_decoded_values(gravity, temp, rssi, tx_pwr)  # Process the data sent from the Tilt
 
     if verbose:
@@ -118,7 +123,7 @@ async def amain(args=None):
     # requires a STREAM socket) - previously was fac=event_loop.create_connection(aiobs.BLEScanRequester,sock=mysocket)
     conn, btctrl = await event_loop._create_connection_transport(mysocket, aiobs.BLEScanRequester, None, None)
     # Attach your processing
-    btctrl.process = processBLEBeacon  # Attach the handler to the bluetooth control loop
+    btctrl.process = process_ble_beacon  # Attach the handler to the bluetooth control loop
     # Begin probing
     await btctrl.send_scan_request()
     try:
@@ -137,4 +142,5 @@ async def amain(args=None):
         await btctrl.send_command(command)
         conn.close()
 
-asyncio.run(amain())
+if __name__ == '__main__':
+    asyncio.run(amain())
