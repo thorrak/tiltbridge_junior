@@ -1,0 +1,1 @@
+aiounittest==1.4.2      # for testing asyncio code

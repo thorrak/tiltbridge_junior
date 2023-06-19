@@ -610,3 +610,6 @@ cython_debug/
 # PyCharm
 .idea/
 
+# This should be created by users
+config.ini
+
