@@ -1,0 +1,3 @@
+sentry_sdk==1.25.1
+requests==2.31.0        # for loading firmware data from websites
+aioblescan==0.2.14      # Replacement for beacontools for Tilt support

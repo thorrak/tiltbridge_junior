@@ -1,53 +1,31 @@
 #!/usr/bin/python
 
-# TODO - Figure out the best way to convert this to use sync_to_async calls
 import os, sys
-os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-
-# Let's get sentry support going
-from sentry_sdk import init, capture_exception
-# This is the sentry queue for Fermentrack
-#init('http://3a1cc1f229ae4b0f88a4c6f7b5d8f394:c10eae5fd67a43a58957887a6b2484b1@sentry.optictheory.com:9000/2')
-# Breaking this out into its own Sentry queue for now
-init('http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11')
-
-import time, datetime, getopt, pid
+import sentry_sdk
+import time, datetime, getopt
 from typing import List, Dict
 import asyncio
+import aioblescan as aiobs
+from TiltHydrometer import TiltHydrometer
+import logging
 
 # Initialize logging
-import logging
+sentry_sdk.init(
+    "http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11",
+    traces_sample_rate=1.0 # TODO - Set this to 0.0 before release
+)
+logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.INFO)
 
-# We're having environment issues - Check the environment before continuing
-import aioblescan as aiobs
-# import pkg_resources
-# from packaging import version
-#
-# for package in pkg_resources.working_set:
-#     if package.project_name == 'aioblescan':
-#         # This is ridiculous but package.parsed_version doesn't return the right type of Version.
-#         if version.parse(package.parsed_version.public) < version.parse("0.2.6"):
-#             LOG.error("Incorrect aioblescan version installed - unable to run")
-#             exit(1)
+# TODO - Parse some kind of configuration here
+# Script Defaults
+verbose = False  # Should the script print out what it's doing to the logs?
+bluetooth_device = 0  # Default to /dev/hci0
 
-# done before importing django app as it does setup
-from . import tilt_monitor_utils
 
-from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()
-
-from gravity.tilt.TiltHydrometer import TiltHydrometer
-import gravity.models
-
-# import django.core.exceptions
-
-tilt_monitor_utils.process_monitor_options()
-
-verbose = tilt_monitor_utils.verbose
-mydev = tilt_monitor_utils.bluetooth_device
-
+def print_to_stderr(*objs):
+    print("", *objs, file=sys.stderr)
 
 
 #### The main loop
@@ -77,12 +55,12 @@ def processBLEBeacon(data):
     raw_data_hex = ev.raw_data.hex()
 
     if len(raw_data_hex) < 80:  # Very quick filter to determine if this is a valid Tilt device
-        # if verbose:
-        #     LOG.info("Small raw_data_hex: {}".format(raw_data_hex))
+        if verbose:
+            LOG.debug("Small raw_data_hex: {}".format(raw_data_hex))
         return False
     if "1370f02d74de" not in raw_data_hex:  # Another very quick filter (honestly, might not be faster than just looking at uuid below)
-        # if verbose:
-        #     LOG.info("Missing key in raw_data_hex: {}".format(raw_data_hex))
+        if verbose:
+            LOG.debug("Missing key in raw_data_hex: {}".format(raw_data_hex))
         return False
 
     # For testing/viewing raw announcements, uncomment the following
@@ -111,9 +89,8 @@ def processBLEBeacon(data):
 
     except Exception as e:
         LOG.error(e)
-        capture_exception(e)
+        sentry_sdk.capture_exception(e)
         exit(1)
-        return False  # This can't be called, but it's here to make Pycharm happy
 
     if verbose:
         LOG.info("Tilt Payload (hex): {}".format(raw_data_hex))
@@ -122,58 +99,50 @@ def processBLEBeacon(data):
     tilts[color].process_decoded_values(gravity, temp, rssi, tx_pwr)  # Process the data sent from the Tilt
 
     if verbose:
-        # print("Color {} - MAC {}".format(color, mac_addr))
-        print("Raw Data: `{}`".format(raw_data_hex))
-        print(f"{color} - Temp: {temp}, Gravity: {gravity}, RSSI: {rssi}, TX Pwr: {tx_pwr}")
+        # LOG.info("Color {} - MAC {}".format(color, mac_addr))
+        LOG.info("Raw Data: `{}`".format(raw_data_hex))
+        LOG.info(f"{color} - Temp: {temp}, Gravity: {gravity}, RSSI: {rssi}, TX Pwr: {tx_pwr}")
 
-    # The Fermentrack specific stuff:
-    reload = False
-    if datetime.datetime.now() > reload_objects_at:
-        # Doing this so that as time passes while we're polling objects, we still end up reloading everything
-        reload = True
-        reload_objects_at = datetime.datetime.now() + datetime.timedelta(seconds=30)
-
-    for this_tilt in tilts:
-        if tilts[this_tilt].should_save():
-            if verbose:
-                LOG.info("Saving {} to Fermentrack".format(this_tilt))
-            tilts[this_tilt].save_value_to_fermentrack(verbose=verbose)
-
-        if reload:  # Users editing/changing objects in Fermentrack doesn't signal this process so reload on a timer
-            if verbose:
-                LOG.info("Loading {} from Fermentrack".format(this_tilt))
-            tilts[this_tilt].load_obj_from_fermentrack()
+    # TODO - Process sending the data here
 
 
-event_loop = asyncio.get_event_loop()
 
-# First create and configure a raw socket
-# TODO - Determine if I want to loop here or just exit on failure
-try:
-    mysocket = aiobs.create_bt_socket(mydev)
-except OSError as e:
-    LOG.error("Unable to create socket - {}. Is there a bluetooth adapter attached in this configuration?".format(e))
-    time.sleep(60)  # Sleep for 60 seconds so we don't spam the logs
-    exit(1)
 
-# create a connection with the raw socket (Uses _create_connection_transport instead of create_connection as this now
-# requires a STREAM socket) - previously was fac=event_loop.create_connection(aiobs.BLEScanRequester,sock=mysocket)
-fac = event_loop._create_connection_transport(mysocket, aiobs.BLEScanRequester, None, None)
-conn, btctrl = event_loop.run_until_complete(fac)  # Start the bluetooth control loop
-btctrl.process = processBLEBeacon  # Attach the handler to the bluetooth control loop
+async def amain(args=None):
+    global bluetooth_device
 
-# Begin probing
-btctrl.send_scan_request()
-try:
-    event_loop.run_forever()
-except KeyboardInterrupt:
-    if verbose:
-        LOG.info('Keyboard interrupt')
-finally:
-    if verbose:
-        LOG.info('Closing event loop')
-    btctrl.stop_scan_request()
-    command = aiobs.HCI_Cmd_LE_Advertise(enable=False)
-    btctrl.send_command(command)
-    conn.close()
-    event_loop.close()
+    event_loop = asyncio.get_running_loop()
+
+    # First create and configure a raw socket
+    try:
+        mysocket = aiobs.create_bt_socket(bluetooth_device)
+    except OSError as e:
+        LOG.error("Unable to create socket - {}. Is there a bluetooth adapter attached in this configuration?".format(e))
+        sentry_sdk.capture_exception(e)  # TODO - Remove the log to sentry here
+        time.sleep(60)  # Sleep for 60 seconds, so we don't spam the logs
+        exit(1)
+
+    # create a connection with the raw socket (Uses _create_connection_transport instead of create_connection as this now
+    # requires a STREAM socket) - previously was fac=event_loop.create_connection(aiobs.BLEScanRequester,sock=mysocket)
+    conn, btctrl = await event_loop._create_connection_transport(mysocket, aiobs.BLEScanRequester, None, None)
+    # Attach your processing
+    btctrl.process = processBLEBeacon  # Attach the handler to the bluetooth control loop
+    # Begin probing
+    await btctrl.send_scan_request()
+    try:
+        while True:
+            await asyncio.sleep(3600)
+            # TODO - Potentially check if we haven't detected anything here and restart the loop
+    except KeyboardInterrupt:
+        if verbose:
+                LOG.info('Keyboard interrupt')
+    finally:
+        if verbose:
+            LOG.info('Closing event loop')
+        # event_loop.run_until_complete(btctrl.stop_scan_request())
+        await btctrl.stop_scan_request()
+        command = aiobs.HCI_Cmd_LE_Advertise(enable=False)
+        await btctrl.send_command(command)
+        conn.close()
+
+asyncio.run(amain())
