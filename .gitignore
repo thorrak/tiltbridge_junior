@@ -610,6 +610,6 @@ cython_debug/
 # PyCharm
 .idea/
 
-# This should be created by users
-config.ini
-
+# When either run as a non-docker install, or in testing, a .env file is required to be present in this directory to
+# configure TiltBridge Jr. In Docker, the environment variables are passed in via the docker-compose.yml file.
+.env

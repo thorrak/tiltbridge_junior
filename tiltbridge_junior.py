@@ -8,7 +8,9 @@ import asyncio
 import aioblescan as aiobs
 from TiltHydrometer import TiltHydrometer
 import logging
-import configparser
+from dotenv import load_dotenv
+
+load_dotenv()  # take environment variables from .env.
 
 # Initialize logging
 sentry_sdk.init(
@@ -25,29 +27,30 @@ tilts = {x: TiltHydrometer(x) for x in TiltHydrometer.tilt_colors}  # type: Dict
 
 
 # Configuration variables
-config = {}
+verbose = False
+bluetooth_device = 0
 
 def load_config_file():
-    """This function loads a config file using configparser from the same directory as this script. The config file
+    """This function loads a config file using environment variables. The config file
     contains script level settings (such as verbose, and bluetooth_device) as well as configuration information for data
     targets such as Fermentrack"""
-    global config
+    global verbose
+    global bluetooth_device
 
-    config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tiltbridge_junior.ini")
-    config_ini = configparser.ConfigParser()
-    if not os.path.exists(config_path):
-        LOG.warning("Unable to load config file from {}".format(config_path))
-        return False
-    else:
-        config_ini.read(config_path)
+    # Read the verbose setting from the environment variable
+    verbose_env = os.environ.get("TILTBRIDGE_JR_VERBOSE")
+    verbose = verbose_env.lower() == 'true' if verbose_env else False
 
-    config['verbose'] = config_ini.getboolean("tiltbridge_junior", "verbose", fallback=False)
-    config['bluetooth_device'] = config_ini.getint("tiltbridge_junior", "bluetooth_device", fallback=0)
+    # Read the bluetooth_device setting from the environment variable
+    bluetooth_device_env = os.environ.get("TILTBRIDGE_BLUETOOTH_DEVICE")
+    bluetooth_device = int(bluetooth_device_env) if bluetooth_device_env else 0
+
+    # TODO - Call configuration for data targets here
 
 
 def process_ble_beacon(data):
     # While I'm not a fan of globals, not sure how else we can store state here easily
-    global config
+    global verbose
     global tilts
 
     ev = aiobs.HCI_Event()
@@ -55,18 +58,18 @@ def process_ble_beacon(data):
 
     # To make things easier, let's convert the byte string to a hex string first
     if ev.raw_data is None:
-        if config['verbose']:
+        if verbose:
             LOG.error("Event has no raw data")
         return False
 
     raw_data_hex = ev.raw_data.hex()
 
     if len(raw_data_hex) < 80:  # Very quick filter to determine if this is potentially a valid Tilt device
-        if config['verbose']:
+        if verbose:
             LOG.debug("Small raw_data_hex: {}".format(raw_data_hex))
         return False
     if "1370f02d74de" not in raw_data_hex:  # Another very quick filter (honestly, might not be faster than just looking at uuid below)
-        if config['verbose']:
+        if verbose:
             LOG.debug("Missing key in raw_data_hex: {}".format(raw_data_hex))
         return False
 
@@ -90,7 +93,7 @@ def process_ble_beacon(data):
         uuid = payload[4:36]
         color = TiltHydrometer.color_lookup(uuid)  # Map the uuid back to our TiltHydrometer object
         if color is None:
-            if config['verbose']:
+            if verbose:
                 LOG.error(f"Unable to find a TiltHydrometer color for UUID {uuid}")
             return False
 
@@ -105,12 +108,12 @@ def process_ble_beacon(data):
         sentry_sdk.capture_exception(e)
         exit(1)
 
-    if config['verbose']:
+    if verbose:
         LOG.info("Tilt Payload (hex): {}".format(raw_data_hex))
 
     tilts[color].process_decoded_values(gravity, temp, rssi, tx_pwr)  # Process the data sent from the Tilt
 
-    if config['verbose']:
+    if verbose:
         # LOG.info("Color {} - MAC {}".format(color, mac_addr))
         LOG.info("Raw Data: `{}`".format(raw_data_hex))
         LOG.info(f"{color} - Temp: {temp}, Gravity: {gravity}, RSSI: {rssi}, TX Pwr: {tx_pwr}")
@@ -121,13 +124,14 @@ def process_ble_beacon(data):
 
 
 async def amain(args=None):
-    global config
+    global verbose
+    global bluetooth_device
 
     event_loop = asyncio.get_running_loop()
 
     # First create and configure a raw socket
     try:
-        mysocket = aiobs.create_bt_socket(config['bluetooth_device'])
+        mysocket = aiobs.create_bt_socket(bluetooth_device)
     except OSError as e:
         LOG.error("Unable to create socket - {}. Is there a bluetooth adapter attached in this configuration?".format(e))
         sentry_sdk.capture_exception(e)  # TODO - Remove the log to sentry here
@@ -146,10 +150,10 @@ async def amain(args=None):
             await asyncio.sleep(3600)
             # TODO - Potentially check if we haven't detected anything here and restart the loop
     except KeyboardInterrupt:
-        if config['verbose']:
+        if verbose:
                 LOG.info('Keyboard interrupt')
     finally:
-        if config['verbose']:
+        if verbose:
             LOG.info('Closing event loop')
         # event_loop.run_until_complete(btctrl.stop_scan_request())
         await btctrl.stop_scan_request()
