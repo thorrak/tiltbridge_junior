@@ -24,23 +24,15 @@ verbose = False  # Should the script print out what it's doing to the logs?
 bluetooth_device = 0  # Default to /dev/hci0
 
 
-def print_to_stderr(*objs):
-    print("", *objs, file=sys.stderr)
-
-
 #### The main loop
 
 # Create a list of TiltHydrometer objects for us to use
 tilts = {x: TiltHydrometer(x) for x in TiltHydrometer.tilt_colors}  # type: Dict[str, TiltHydrometer]
 
-# Create the default
-reload_objects_at = datetime.datetime.now() + datetime.timedelta(seconds=15)
-
 
 def processBLEBeacon(data):
     # While I'm not a fan of globals, not sure how else we can store state here easily
     global verbose
-    global reload_objects_at
     global tilts
 
     ev = aiobs.HCI_Event()
