@@ -147,10 +147,10 @@ class TiltHydrometer:
         """Return a JSON-serializable dictionary representation of the object"""
         return {
             "color": self.color,
-            "raw_gravity": self.raw_gravity,
-            # "gravity": self.gravity,
-            "raw_temp": self.raw_temp,
-            # "temp": self.temp,
+            "raw_gravity": str(self.raw_gravity),
+            # "gravity": str(self.gravity),
+            "raw_temp": str(self.raw_temp),
+            # "temp": str(self.temp),
             "rssi": self.rssi,
             "tilt_pro": self.tilt_pro,
             "sends_battery": self.sends_battery,
@@ -158,7 +158,7 @@ class TiltHydrometer:
             "firmware_version": self.firmware_version,
             # "gravity_list": self.gravity_list,
             # "temp_list": self.temp_list,
-            "smoothed_gravity": self.smoothed_gravity(),
-            "smoothed_temp": self.smoothed_temp(),
+            "smoothed_gravity": str(self.smoothed_gravity()),
+            "smoothed_temp": str(self.smoothed_temp()),
             "smoothing_window": self.smoothing_window,
         }
