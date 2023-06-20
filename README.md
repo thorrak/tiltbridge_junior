@@ -4,6 +4,8 @@ TiltBridge Junior is a standalone daemon for reading data from a Tilt Hydrometer
 as [Fermentrack](http://www.fermentrack.com/). It is intended to be run on a Raspberry Pi, using the Pi's bluetooth
 sensor, but likely can be run on any Linux system with a bluetooth sensor.
 
+If you are looking for a standalone, hardware Tilt-to-WiFi bridge, check out the [TiltBridge](https://www.tiltbridge.com/) - 
+my project to build a self-contained, single component, solder-free Tilt-to-WiFi bridge using an ESP-32.
 
 
 ### Installation with Docker

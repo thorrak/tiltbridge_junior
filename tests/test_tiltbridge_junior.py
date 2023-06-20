@@ -1,8 +1,6 @@
 import unittest
 from unittest import mock
 from aiounittest import AsyncTestCase
-from aioblescan import HCI_Event
-from decimal import Decimal
 
 from tiltbridge_junior import process_ble_beacon, tilts
 
@@ -22,10 +20,12 @@ class TestProcessBLEBeacon(AsyncTestCase):
         # mock the call to tilts['Yellow'].process_decoded_values as that is what we want to test was called
         # (the functionality of process_decoded_values is tested elsewhere)
         with mock.patch('tiltbridge_junior.TiltHydrometer.process_decoded_values') as mock_process_decoded_values:
-            process_ble_beacon(mock_data)  # Call the function under test
+            with mock.patch('tiltbridge_junior.data_target_handler.process_data') as mock_process_data:
+                process_ble_beacon(mock_data)  # Call the function under test
 
-            # Assert that process_decoded_values was called with the correct values
-            mock_process_decoded_values.assert_called_with(10345, 728, -65, 197)
+                # Assert that process_decoded_values was called with the correct values
+                mock_process_decoded_values.assert_called_with(10345, 728, -65, 197)
+                mock_process_data.assert_called_once_with(tilts)
 
 
     async def test_process_ble_beacon_no_data(self):
@@ -33,8 +33,10 @@ class TestProcessBLEBeacon(AsyncTestCase):
         mock_data = b''
 
         with mock.patch('tiltbridge_junior.TiltHydrometer.process_decoded_values') as mock_process_decoded_values:
-            self.assertFalse(process_ble_beacon(mock_data))  # Since there was no data, this should return false
-            mock_process_decoded_values.assert_not_called()  # ...and we should never get to this point
+            with mock.patch('tiltbridge_junior.data_target_handler.process_data') as mock_process_data:
+                self.assertFalse(process_ble_beacon(mock_data))  # Since there was no data, this should return false
+                mock_process_decoded_values.assert_not_called()  # ...and we should never get to this point
+                mock_process_data.assert_not_called()
 
 
     async def test_process_ble_beacon_small_data(self):
@@ -42,8 +44,10 @@ class TestProcessBLEBeacon(AsyncTestCase):
         mock_data = b'1234567890'
 
         with mock.patch('tiltbridge_junior.TiltHydrometer.process_decoded_values') as mock_process_decoded_values:
-            self.assertFalse(process_ble_beacon(mock_data))  # Since the data was small, this should return false
-            mock_process_decoded_values.assert_not_called()  # ...and we should never get to this point
+            with mock.patch('tiltbridge_junior.data_target_handler.process_data') as mock_process_data:
+                self.assertFalse(process_ble_beacon(mock_data))  # Since the data was small, this should return false
+                mock_process_decoded_values.assert_not_called()  # ...and we should never get to this point
+                mock_process_data.assert_not_called()
 
 
     async def test_process_ble_beacon_invalid_color(self):
@@ -54,8 +58,10 @@ class TestProcessBLEBeacon(AsyncTestCase):
         mock_data = b'\x04>*\x02\x01\x03\x01\xc9\xf7\xd0\xcfz\xdf\x1e\x02\x01\x04\x1a\xffL\x00\x02\x15\xa4\x95\xbbq\xc5\xb1KD\xb5\x12\x13p\xf0-t\xde\x02\xd8(i\xc5\xbf'
 
         with mock.patch('tiltbridge_junior.TiltHydrometer.process_decoded_values') as mock_process_decoded_values:
-            self.assertFalse(process_ble_beacon(mock_data))  # Since the color wasn't valid, this should return false
-            mock_process_decoded_values.assert_not_called()  # ...and we should never get to this point
+            with mock.patch('tiltbridge_junior.data_target_handler.process_data') as mock_process_data:
+                self.assertFalse(process_ble_beacon(mock_data))  # Since the color wasn't valid, this should return false
+                mock_process_decoded_values.assert_not_called()  # ...and we should never get to this point
+                mock_process_data.assert_not_called()
 
 
 

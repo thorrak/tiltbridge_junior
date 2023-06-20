@@ -161,4 +161,5 @@ class TiltHydrometer:
             "smoothed_gravity": str(self.smoothed_gravity()),
             "smoothed_temp": str(self.smoothed_temp()),
             "smoothing_window": self.smoothing_window,
+            "temp_format": self.temp_format,
         }

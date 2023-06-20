@@ -9,6 +9,7 @@ import aioblescan as aiobs
 from TiltHydrometer import TiltHydrometer
 import logging
 from dotenv import load_dotenv
+import data_targets.data_target_handler as data_target_handler
 
 load_dotenv()  # take environment variables from .env.
 
@@ -17,6 +18,11 @@ sentry_sdk.init(
     "http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11",
     traces_sample_rate=1.0 # TODO - Set this to 0.0 before release
 )
+
+# TODO - Match the log file names that Fermentrack expects:
+# stdout_logfile=/app/log/tilt-stdout.log
+# stderr_logfile=/app/log/tilt-stderr.log
+
 logging.basicConfig(level=logging.WARN)
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.WARN)
@@ -46,7 +52,8 @@ def load_config_file():
     bluetooth_device_env = os.environ.get("TILTBRIDGE_JR_BLUETOOTH_DEVICE")
     bluetooth_device = int(bluetooth_device_env) if bluetooth_device_env else 0
 
-    # TODO - Call configuration for data targets here
+    # Load the data target configuration
+    data_target_handler.load_config()
 
 
 def process_ble_beacon(data):
@@ -112,6 +119,8 @@ def process_ble_beacon(data):
     # LOG.info("Raw Data: `{}`".format(raw_data_hex))
     LOG.info(f"Found Tilt: {color} - Temp: {temp}, Gravity: {gravity}, RSSI: {rssi}, TX Pwr: {tx_pwr}")
 
+    # Check if we need to send data to any targets
+    data_target_handler.process_data(tilts)
 
 
 async def async_main(args=None):
