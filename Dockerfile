@@ -38,7 +38,7 @@ COPY --chown=tiltbridge:tiltbridge . /app
 
 # Add the django user to the container's dialout group
 #RUN usermod -a -G dialout tiltbridge
-RUN addgroup dialout tiltbridge
+RUN addgroup tiltbridge dialout
 
 # Correct the permissions for /app/log
 #RUN chown tiltbridge /app/log/
