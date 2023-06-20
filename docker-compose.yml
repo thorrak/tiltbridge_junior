@@ -1,0 +1,13 @@
+version: '3.3'
+
+services:
+  tiltbridge-junior:
+    image: jdbeeler/tiltbridge-junior:latest
+    restart: unless-stopped
+    network_mode: "host"
+    env_file:
+      - ./.env
+    volumes:
+      - /dev:/dev
+    command: ["/start", "--privileged"]
+    privileged: true

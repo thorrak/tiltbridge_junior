@@ -12,6 +12,20 @@ my project to build a self-contained, single component, solder-free Tilt-to-WiFi
 
 
 
+
+
+
+
+In order to work, this daemon requires access to the Bluetooth sensor on the host system, in addition to several other
+requirements. These include:
+- Running in "host" network mode
+- Running in privileged mode
+- Mounting the host's `/dev` directory into the container
+
+The easiest way to do this is using docker-compose. A sample docker-compose.yml file has been included which shows how
+to configure the container to run in this manner.
+
+
 ### Installation/Use outside Docker
 
 #### Installation

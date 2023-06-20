@@ -132,9 +132,10 @@ async def async_main(args=None):
     try:
         mysocket = aiobs.create_bt_socket(bluetooth_device)
     except OSError as e:
+        # TODO - Hang here, send a message to Fermentrack, log some massive error - just don't exit
         LOG.error("Unable to create socket - {}. Is there a bluetooth adapter attached in this configuration?".format(e))
-        sentry_sdk.capture_exception(e)  # TODO - Remove the log to sentry here
-        time.sleep(60)  # Sleep for 60 seconds, so we don't spam the logs
+        while True:
+            time.sleep(60)  # Sleep forever since we can't do anything else. This is an external problem that will require restarting the container at a minimum
         exit(1)
 
     # create a connection with the raw socket (Uses _create_connection_transport instead of create_connection as this now

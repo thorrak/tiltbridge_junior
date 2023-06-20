@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 set -o errexit
 set -o pipefail
 set -o nounset
 
 cd /app
+
 python3 tiltbridge_junior.py
