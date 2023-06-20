@@ -44,8 +44,8 @@ RUN addgroup tiltbridge dialout
 RUN addgroup tiltbridge lp
 
 #RUN modprobe btusb
-RUN rc-service bluetooth start
-RUN rc-update add bluetooth default
+#RUN rc-service bluetooth start
+#RUN rc-update add bluetooth default
 
 
 # Correct the permissions for /app/log
