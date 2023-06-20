@@ -5,4 +5,5 @@ set -o pipefail
 set -o nounset
 
 cd /app
+bluetoothctl list
 python3 tiltbridge_junior.py
