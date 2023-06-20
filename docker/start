@@ -6,8 +6,4 @@ set -o nounset
 
 cd /app
 
-#/usr/bin/dbus-daemon --system --nofork --print-address --nopidfile --nosyslog &
-
-#rfkill list bluetooth
-#bluetoothctl list
 python3 tiltbridge_junior.py

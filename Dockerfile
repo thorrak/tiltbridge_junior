@@ -2,20 +2,8 @@ FROM python:3.9-alpine
 
 ENV PYTHONUNBUFFERED 1
 
-#RUN apt-get update \
-#  # dependencies for building Python packages
-##  && apt-get install -y build-essential \
-#  # all the bluetooth libs
-##  && apt-get install -y bluez \
-#  && apt-get install -y bluez libcap2-bin libbluetooth3 libbluetooth-dev \
-#  # cleaning up unused files
-#  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-#  && rm -rf /var/lib/apt/lists/*
-
-
 RUN addgroup --system tiltbridge \
     && adduser --system --ingroup tiltbridge tiltbridge
-
 
 # Add piwheels (and our custom wheels!) to pip.conf to (slightly) speed up builds
 COPY ./docker/pip.conf /etc/pip.conf
@@ -39,13 +27,8 @@ RUN chmod +x /start
 COPY --chown=tiltbridge:tiltbridge . /app
 
 # Add the django user to the container's dialout group
-#RUN usermod -a -G dialout tiltbridge
 RUN addgroup tiltbridge dialout
 RUN addgroup tiltbridge lp
-
-#RUN modprobe btusb
-#RUN rc-service bluetooth start
-#RUN rc-update add bluetooth default
 
 
 # Correct the permissions for /app/log
