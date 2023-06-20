@@ -28,6 +28,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 #RUN sed -i 's/\r$//g' /entrypoint
 #RUN chmod +x /entrypoint
 
+# Add libcap so we can use setcap to allow the tiltbridge user to use bluetooth
+RUN apk --no-cache add libcap
 
 COPY --chown=tiltbridge:tiltbridge ./docker/start /start
 RUN sed -i 's/\r$//g' /start
