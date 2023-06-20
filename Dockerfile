@@ -43,7 +43,7 @@ COPY --chown=tiltbridge:tiltbridge . /app
 RUN addgroup tiltbridge dialout
 RUN addgroup tiltbridge lp
 
-RUN modprobe btusb
+#RUN modprobe btusb
 RUN rc-service bluetooth start
 RUN rc-update add bluetooth default
 
