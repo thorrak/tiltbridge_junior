@@ -6,7 +6,7 @@ set -o nounset
 
 cd /app
 
-/usr/bin/dbus-daemon --system --nofork --print-address --nopidfile --nosyslog &
+#/usr/bin/dbus-daemon --system --nofork --print-address --nopidfile --nosyslog &
 
 rfkill list bluetooth
 bluetoothctl list
