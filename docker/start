@@ -5,7 +5,7 @@ set -o pipefail
 set -o nounset
 
 cd /app
-rc-service dbus start
-rc-service bluetooth start
+#rc-service dbus start
+#rc-service bluetooth start
 bluetoothctl list
 python3 tiltbridge_junior.py
