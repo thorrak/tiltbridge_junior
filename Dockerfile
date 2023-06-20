@@ -1,16 +1,16 @@
-FROM python:3.9-bullseye
+FROM python:3.9-alpine
 
 ENV PYTHONUNBUFFERED 1
 
-RUN apt-get update \
-  # dependencies for building Python packages
-  && apt-get install -y build-essential \
-  # all the bluetooth libs
-#  && apt-get install -y bluez \
-  && apt-get install -y bluez libcap2-bin libbluetooth3 libbluetooth-dev \
-  # cleaning up unused files
-  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-  && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update \
+#  # dependencies for building Python packages
+##  && apt-get install -y build-essential \
+#  # all the bluetooth libs
+##  && apt-get install -y bluez \
+#  && apt-get install -y bluez libcap2-bin libbluetooth3 libbluetooth-dev \
+#  # cleaning up unused files
+#  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+#  && rm -rf /var/lib/apt/lists/*
 
 
 RUN addgroup --system tiltbridge \
