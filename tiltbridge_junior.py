@@ -23,7 +23,7 @@ sentry_sdk.init(
 # stdout_logfile=/app/log/tilt-stdout.log
 # stderr_logfile=/app/log/tilt-stderr.log
 
-logging.basicConfig(level=logging.WARN)
+logging.basicConfig(filename='log/app.log', level=logging.WARN)
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.WARN)
 
