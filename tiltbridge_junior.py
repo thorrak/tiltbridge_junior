@@ -20,7 +20,8 @@ sentry_sdk.init(
 )
 
 
-logging.basicConfig(filename='log/tiltbridge-jr.log', level=logging.WARN)
+logging.basicConfig(filename='log/tiltbridge-jr.log', level=logging.WARN,
+                    format='%(asctime)s %(levelname):-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.WARN)
 
