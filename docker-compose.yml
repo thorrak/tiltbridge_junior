@@ -9,5 +9,5 @@ services:
       - ./.env
     volumes:
       - /dev:/dev
-    command: ["/start", "--privileged"]
+    command: ["/start"]
     privileged: true
