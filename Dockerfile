@@ -32,7 +32,7 @@ RUN addgroup tiltbridge lp
 
 
 # Correct the permissions for /app/log
-#RUN chown tiltbridge /app/log/
+RUN chown tiltbridge /app/log/
 
 # Fix Bluetooth permissions
 RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/bin/python3.9
