@@ -19,11 +19,8 @@ sentry_sdk.init(
     traces_sample_rate=1.0 # TODO - Set this to 0.0 before release
 )
 
-# TODO - Match the log file names that Fermentrack expects:
-# stdout_logfile=/app/log/tilt-stdout.log
-# stderr_logfile=/app/log/tilt-stderr.log
 
-logging.basicConfig(filename='log/app.log', level=logging.WARN)
+logging.basicConfig(filename='log/tiltbridge-jr.log', level=logging.WARN)
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.WARN)
 
