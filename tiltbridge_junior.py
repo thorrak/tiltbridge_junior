@@ -59,7 +59,11 @@ def process_ble_beacon(data):
     global tilts
 
     ev = aiobs.HCI_Event()
-    xx = ev.decode(data)
+    try:
+        xx = ev.decode(data)
+    except:
+        # "unpack requires a buffer of 4 bytes" is the main trigger here, but I can't pin down the exact exception
+        return False
 
     # To make things easier, let's convert the byte string to a hex string first
     if ev.raw_data is None:
