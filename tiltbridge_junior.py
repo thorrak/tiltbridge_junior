@@ -16,7 +16,7 @@ load_dotenv()  # take environment variables from .env.
 # Initialize logging
 sentry_sdk.init(
     "http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11",
-    traces_sample_rate=1.0 # TODO - Set this to 0.0 before release
+    traces_sample_rate=0.0
 )
 
 
