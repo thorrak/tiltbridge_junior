@@ -15,7 +15,7 @@ load_dotenv()  # take environment variables from .env.
 
 # Initialize logging
 sentry_sdk.init(
-    "http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11",
+    "https://9a5f70908aee4f879e0f7f9ec81ef618@sentry.optictheory.com/10",
     traces_sample_rate=0.0
 )
 
