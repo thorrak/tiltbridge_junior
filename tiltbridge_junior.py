@@ -92,7 +92,11 @@ def process_ble_beacon(data):
         # Let's use some of the functions of aioblesscan to tease out the mfg_specific_data payload
 
         manufacturer_data = ev.retrieve("Manufacturer Specific Data")
-        payload = manufacturer_data[0].payload
+        if len(manufacturer_data) > 0:
+            payload = manufacturer_data[0].payload
+        else:
+            # No manufacturer data is available
+            return False
         payload = payload[1].val.hex()
 
         # ...and then dissect said payload into a UUID, temp, and gravity
