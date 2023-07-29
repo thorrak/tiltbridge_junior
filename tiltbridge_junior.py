@@ -25,6 +25,10 @@ logging.basicConfig(filename='log/tiltbridge-jr.log', level=logging.WARN,
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.WARN)
 
+# I'm trying to output things that are install-specific (or environmental) to log files that a user can access, while
+# not logging those to Sentry. The "tilt" logger in this case shouldn't be sent to Sentry, but should be logged to
+# stderr.
+sentry_sdk.integrations.logging.ignore_logger("tilt")
 
 # Create a list of TiltHydrometer objects for us to use
 tilts = {x: TiltHydrometer(x) for x in TiltHydrometer.tilt_colors}  # type: Dict[str, TiltHydrometer]
