@@ -15,7 +15,7 @@ load_dotenv()  # take environment variables from .env.
 
 # Initialize logging
 sentry_sdk.init(
-    "http://ed5037d74b6e45a4b971dccccd95aace@sentry.optictheory.com:9000/11",
+    "https://9a5f70908aee4f879e0f7f9ec81ef618@sentry.optictheory.com/10",
     traces_sample_rate=0.0
 )
 
@@ -25,6 +25,10 @@ logging.basicConfig(filename='log/tiltbridge-jr.log', level=logging.WARN,
 LOG = logging.getLogger("tilt")
 LOG.setLevel(logging.WARN)
 
+# I'm trying to output things that are install-specific (or environmental) to log files that a user can access, while
+# not logging those to Sentry. The "tilt" logger in this case shouldn't be sent to Sentry, but should be logged to
+# stderr.
+sentry_sdk.integrations.logging.ignore_logger("tilt")
 
 # Create a list of TiltHydrometer objects for us to use
 tilts = {x: TiltHydrometer(x) for x in TiltHydrometer.tilt_colors}  # type: Dict[str, TiltHydrometer]
@@ -92,7 +96,11 @@ def process_ble_beacon(data):
         # Let's use some of the functions of aioblesscan to tease out the mfg_specific_data payload
 
         manufacturer_data = ev.retrieve("Manufacturer Specific Data")
-        payload = manufacturer_data[0].payload
+        if len(manufacturer_data) > 0:
+            payload = manufacturer_data[0].payload
+        else:
+            # No manufacturer data is available
+            return False
         payload = payload[1].val.hex()
 
         # ...and then dissect said payload into a UUID, temp, and gravity
