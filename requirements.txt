@@ -1,6 +1,6 @@
 --extra-index-url https://wheels.fermentrack.com/simple
 
-sentry_sdk==1.25.1
+sentry_sdk==1.30.0
 requests==2.31.0        # for loading firmware data from websites
 aioblescan==0.2.14      # Replacement for beacontools for Tilt support
 python-dotenv==1.0.0   # for loading environment variables from .env file
